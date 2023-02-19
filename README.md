@@ -10,3 +10,13 @@ DB_PASSWORD = "databaseName"
 
 
 ```
+
+## Run Instruction
+1. Install docker for database 
+2. Install go
+3. Run the following commands
+```
+$ make dockerBuild
+$ make goInstallMod
+$ make goBuildR
+```

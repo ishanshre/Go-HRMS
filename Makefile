@@ -12,3 +12,6 @@ dockerDown:
 
 goBuildR:
 	go build main.go && ./main
+
+goInstallMod:
+	go mod download

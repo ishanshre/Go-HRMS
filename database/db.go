@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 
@@ -13,10 +14,10 @@ import (
 
 type Storage interface {
 	CreateEmployee(*models.Employee) error
-	DeleteEmployee(int) error
-	UpdateEmployee(int, *models.Employee) error
+	DeleteEmployee(int64) error
+	UpdateEmployee(int64, *models.Employee) error
 	ListEmployees() ([]*models.Employee, error)
-	GetEmployeeById(int) (*models.Employee, error)
+	GetEmployeeById(int64) (*models.Employee, error)
 }
 
 type PostgresStore struct {
@@ -84,11 +85,44 @@ func (s *PostgresStore) CreateEmployee(employee *models.Employee) error {
 	return nil
 }
 
-func (s *PostgresStore) DeleteEmployee(id int) error {
+func (s *PostgresStore) DeleteEmployee(id int64) error {
+	query := `
+		DELETE FROM employee
+		WHERE id = $1
+	`
+	s.db.Exec("COMMIT")
+	rows, err := s.db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+	rows_affected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows_affected == 0 {
+		return fmt.Errorf("error: id %v does not exists", id)
+	}
 	return nil
 }
 
-func (s *PostgresStore) UpdateEmployee(id int, employee *models.Employee) error {
+func (s *PostgresStore) UpdateEmployee(id int64, employee *models.Employee) error {
+	query := `
+		UPDATE employee
+		SET name = $2, salary = $3, age = $4
+		WHERE id = $1;
+		
+	`
+	s.db.Exec("COMMIT")
+	_, err := s.db.Exec(
+		query,
+		id,
+		employee.Name,
+		employee.Salary,
+		employee.Age,
+	)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 func (s *PostgresStore) ListEmployees() ([]*models.Employee, error) {
@@ -111,8 +145,19 @@ func (s *PostgresStore) ListEmployees() ([]*models.Employee, error) {
 	return employees, nil
 
 }
-func (s *PostgresStore) GetEmployeeById(id int) (*models.Employee, error) {
-	return nil, nil
+func (s *PostgresStore) GetEmployeeById(id int64) (*models.Employee, error) {
+	query := `
+		SELECT * FROM employee
+		WHERE id = $1;
+	`
+	rows, err := s.db.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		return scanEmployee(rows)
+	}
+	return nil, fmt.Errorf("account with id %v not found", id)
 }
 
 func scanEmployee(rows *sql.Rows) (*models.Employee, error) {
