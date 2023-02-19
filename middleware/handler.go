@@ -1,8 +1,11 @@
 package middleware
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/ishanshre/go-hrm/models"
 )
 
 func (s *ApiServer) handleEmployees(w http.ResponseWriter, r *http.Request) error {
@@ -29,11 +32,26 @@ func (s *ApiServer) handleEmployeeById(w http.ResponseWriter, r *http.Request) e
 }
 
 func (s *ApiServer) handleListEmployees(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	employees, err := s.store.ListEmployees()
+	if err != nil {
+		return err
+	}
+	return writeJSON(w, http.StatusOK, employees)
 }
 
 func (s *ApiServer) handleCreateEmployee(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	newEmployee := new(models.Employee)
+	if err := json.NewDecoder(r.Body).Decode(&newEmployee); err != nil {
+		return err
+	}
+	employee, err := models.NewEmployee(newEmployee.Name, newEmployee.Salary, newEmployee.Age)
+	if err != nil {
+		return err
+	}
+	if err := s.store.CreateEmployee(employee); err != nil {
+		return err
+	}
+	return writeJSON(w, http.StatusCreated, ApiSuccess{Success: "employee successfully created"})
 }
 
 func (s *ApiServer) handleUpdateEmployee(w http.ResponseWriter, r *http.Request) error {

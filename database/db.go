@@ -15,8 +15,8 @@ type Storage interface {
 	CreateEmployee(*models.Employee) error
 	DeleteEmployee(int) error
 	UpdateEmployee(int, *models.Employee) error
-	ListAccounts() ([]*models.Employee, error)
-	GetAccountById(int) (*models.Employee, error)
+	ListEmployees() ([]*models.Employee, error)
+	GetEmployeeById(int) (*models.Employee, error)
 }
 
 type PostgresStore struct {
@@ -64,6 +64,23 @@ func (s *PostgresStore) createEmployeeTable() error {
 }
 
 func (s *PostgresStore) CreateEmployee(employee *models.Employee) error {
+	query := `
+		INSERT INTO employee (
+			name, salary, age, create_at
+		) VALUES ($1, $2, $3, $4);
+	`
+	_, err := s.db.Query(
+		query,
+		employee.Name,
+		employee.Salary,
+		employee.Age,
+		employee.Created_at,
+	)
+	if err != nil {
+		log.Printf("error in creating new employee: %s", err)
+		return err
+	}
+	log.Printf("successfull inserting new employee")
 	return nil
 }
 
@@ -74,9 +91,38 @@ func (s *PostgresStore) DeleteEmployee(id int) error {
 func (s *PostgresStore) UpdateEmployee(id int, employee *models.Employee) error {
 	return nil
 }
-func (s *PostgresStore) ListAccounts() ([]*models.Employee, error) {
+func (s *PostgresStore) ListEmployees() ([]*models.Employee, error) {
+	query := `
+		SELECT * FROM employee;
+	`
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	employees := []*models.Employee{}
+	for rows.Next() {
+		employee, err := scanEmployee(rows)
+		if err != nil {
+			return nil, err
+		}
+		employees = append(employees, employee)
+	}
+	return employees, nil
+
+}
+func (s *PostgresStore) GetEmployeeById(id int) (*models.Employee, error) {
 	return nil, nil
 }
-func (s *PostgresStore) GetAccountById(id int) (*models.Employee, error) {
-	return nil, nil
+
+func scanEmployee(rows *sql.Rows) (*models.Employee, error) {
+	employee := new(models.Employee)
+	err := rows.Scan(
+		&employee.ID,
+		&employee.Name,
+		&employee.Salary,
+		&employee.Age,
+		&employee.Created_at,
+	)
+	return employee, err
 }

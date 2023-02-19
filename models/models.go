@@ -1,6 +1,6 @@
 package models
 
-import "go.starlark.net/lib/time"
+import "time"
 
 type Employee struct {
 	ID         int64     `json:"id"`
@@ -12,8 +12,9 @@ type Employee struct {
 
 func NewEmployee(name string, salary, age float32) (*Employee, error) {
 	return &Employee{
-		Name:   name,
-		Salary: salary,
-		Age:    age,
+		Name:       name,
+		Salary:     salary,
+		Age:        age,
+		Created_at: time.Now().Local().UTC(),
 	}, nil
 }
